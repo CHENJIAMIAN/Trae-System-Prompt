@@ -1,3 +1,106 @@
+注入这个即可提供第三方接到请求：
+t.context.custom_model.base_url=xx
+,t.data.custom_model.base_url=xx
+
+```js
+ async C(e, t) {
+        const s = this.Q(t);
+        let n = !0;
+        const r = Date.now()
+          , o = C => {
+            const {code: S, reason: k} = C;
+            if (S === 1e3)
+                return;
+            if (S === $y.BIG_MESSAGE_ERROR) {
+                const O = tL.create($y.BIG_MESSAGE_ERROR, k);
+                e.getController().error(O),
+                this.W(C, s);
+                return
+            }
+            const D = S === 1006
+              , M = tL.create(D ? S : $y.SOCKET_CLIENT_CLOSE, k);
+            e.getController().error(M),
+            D || this.f.error("[ai-agent]  websocket rpc client onclose: ", S, k)
+        }
+          , a = C => {
+            const S = tL.createWithError($y.SOCKET_CLIENT_ERROR, C);
+            e.getController().error(S),
+            this.W(C, s)
+        }
+          , l = C => {
+            const S = tL.createWithError($y.SOCKET_ERROR, C);
+            e.getController().error(S),
+            this.Z(C, s)
+        }
+          , c = C => {
+            C?.code !== 1006 && this.f.error("[ai-chat] request error: ", C?.code, C)
+        }
+        ;
+        this.f.info(`[ai-chat] doRequestWithStream start: service=${t.service}, method=${t.method}, cost=${Date.now() - r}`);
+        const [h,d,f] = await Promise.all([this.D(), this.L(), this.z.resolveDeviceId()]);
+        this.f.info(`[ai-chat] doRequestWithStream getRPCClient: service=${t.service}, method=${t.method}, cost=${Date.now() - r}`);
+        const g = {
+            module_port: W1i,
+            name: "aiAgent",
+            getUrl: async () => (await h.client.ws.resolveAddress()).replace(/manager/, "module/ai-agent"),
+            WebSocketCtor: WebSocket
+        }
+          , p = localStorage["enable-icube-manager-log"] ? this.f : void 0
+          , {getWS: m, closeWS: b, sendJSON: v, startMessageLoop: w} = V1i(h, g, p);
+        new Promise(async (C, S) => {
+            const k = O => {
+                l(O),
+                S(O)
+            }
+            ;
+            h.client.once("close", O => {
+                S(O),
+                o(O)
+            }
+            ),
+            h.client.once("error", O => {
+                S(O),
+                a(O)
+            }
+            ),
+            w(async (O, K) => {
+                const T = O;
+                if (!T)
+                    return;
+                if (T.code !== 0) {
+                    const H = tL.create(T.code, T.message, void 0, void 0, T.data);
+                    e.getController().error(H),
+                    S(H),
+                    this.Y(T, s);
+                    return
+                }
+                n && (n = !1,
+                this.ab(s)),
+                T.data && e.getController().write(T.data);
+                const P = T.data;
+                P?.event === vlt.Done && (e.getController().complete(T.data || void 0),
+                C(P.payload),
+                this.X(T, s))
+            }
+            ).catch(k);
+            const M = await m().catch(k);
+            if (this.f.info(`[ai-chat] doRequestWithStream getWS: service=${t.service}, method=${t.method}, cost=${Date.now() - r}`),
+            M) {
+                M.onerror = k,
+                M.onclose = o;
+                const O = await this.I(t, d, f);
+                this.f.info(`[ai-chat] doRequestWithStream sendJSON: service=${t.service}, method=${t.method}, cost=${Date.now() - r}`),
+                v(O)
+            }
+        }
+        ).catch(C => c(C)).finally( () => {
+            h.client.off("close", o),
+            h.client.off("error", a),
+            b?.()
+        }
+        )
+    }
+```
 **@Agent：定义未来智能体的规则与工具**
 
 **一、 核心理念与架构**
