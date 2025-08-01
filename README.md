@@ -1,4 +1,4 @@
-注入这个即可提供第三方接到请求：
+注入这个即可让第三方接到请求：
 t.context.custom_model.base_url=xx
 ,t.data.custom_model.base_url=xx
 
